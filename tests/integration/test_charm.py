@@ -127,10 +127,10 @@ async def test_get_primary_action(ops_test: OpsTest) -> None:
 
 
 async def test_exactly_one_primary_reported_by_juju(ops_test: OpsTest) -> None:
-    """Tests that there is exactly one replica set primary unit reported by juju"""
+    """Tests that there is exactly one replica set primary unit reported by juju."""
     
     async def get_unit_messages():
-        """Collects unit status messages"""
+        """Collects unit status messages."""
         app = await app_name(ops_test)
         unit_messages = {}
 
@@ -142,25 +142,22 @@ async def test_exactly_one_primary_reported_by_juju(ops_test: OpsTest) -> None:
 
         return(unit_messages)
 
-    def single_primary(unit_messages):
-        """Confirms there is only one replica set primary unit"""
+    def juju_reports_one_primary(unit_messages):
+        """Confirms there is only one replica set primary unit."""
         count = 0
         for value in unit_messages:
             if unit_messages[value] == "Replica set primary":
                 count += 1
 
-        if count > 1:
-            assert count == 1, "Multiple replica set primary units detected"
-        elif count < 1:
-            assert count == 1, "No replica set primary units detected"
+        assert count == 1, f"Juju is expected to report one primary not {count} primaries"
 
     # collect unit status messages
     unit_messages = await get_unit_messages()
 
     # confirm there is only one replica set primary unit
-    single_primary(unit_messages)
+    juju_reports_one_primary(unit_messages)
 
-    # kill the replica set primary unit
+    # kill the mongod process on the replica set primary unit to force a re-election
     for unit, message in unit_messages.items():
         if message == "Replica set primary":
             target_unit = unit
@@ -174,7 +171,7 @@ async def test_exactly_one_primary_reported_by_juju(ops_test: OpsTest) -> None:
     unit_messages = await get_unit_messages()
     
     # confirm there is only one replica set primary unit
-    single_primary(unit_messages)
+    juju_reports_one_primary(unit_messages)
 
     # cleanup, remove killed unit
     await ops_test.model.destroy_unit(target_unit)
